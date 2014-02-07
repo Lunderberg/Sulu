@@ -2,8 +2,6 @@
 
 import Image
 import curses
-from time import sleep
-from random import shuffle
 import os
 
 colorchart = """COLOR_CHART"""
@@ -39,20 +37,20 @@ def closest_color(r,g,b):
 colors_used = {}
 def curses_main(stdscr):
     global im,colors_used
-    if not curses.has_colors():
-        raise Exception('Need terminal colors enabled to proceed')
 
     height,width = stdscr.getmaxyx()
     im = im.resize((width,height))
     init_colors()
 
+    with open('temp.txt','a') as f:
+        f.write('{} {}\n'.format(height,width))
+
     for i in range(height):
         for j in range(width):
             r,g,b = im.getpixel((j,i))
-            try:
-                stdscr.addch(i,j,' ',closest_color(r,g,b))
-            except curses.error:
+            if i==height-1 and j==width-1:
                 continue
+            stdscr.addch(i,j,' ',closest_color(r,g,b))
     stdscr.refresh()
     stdscr.getch()
 
