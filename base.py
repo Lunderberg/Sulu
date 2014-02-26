@@ -42,9 +42,6 @@ def curses_main(stdscr):
     im = im.resize((width,height))
     init_colors()
 
-    with open('temp.txt','a') as f:
-        f.write('{} {}\n'.format(height,width))
-
     for i in range(height):
         for j in range(width):
             r,g,b = im.getpixel((j,i))
