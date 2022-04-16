@@ -17,9 +17,6 @@ def main(args):
     image_string = "\n".join(textwrap.wrap(image_string))
     sulu = sulu.replace("COLOR_DATA", image_string)
 
-    chart = open("color_chart.txt").read()
-    sulu = sulu.replace("COLOR_CHART", chart)
-
     with open("sulu.py", "w") as f:
         f.write(sulu)
     os.chmod("sulu.py", 0o755)
