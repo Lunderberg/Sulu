@@ -8,10 +8,6 @@ import tty
 import os
 import sys
 
-image_data = """COLOR_DATA"""
-
-os.environ["TERM"] = "xterm-256color"
-
 
 class AlternateScreen:
     def __enter__(self):
@@ -77,6 +73,8 @@ def main():
         print(to_print, end="")
         sys.stdin.read(1)
 
+
+image_data = """COLOR_DATA"""
 
 if __name__ == "__main__":
     main()
