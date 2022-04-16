@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 from base64 import b64decode
-from functools import reduce
 import shutil
 import termios
 import tty
-import os
 import sys
 
 
@@ -45,7 +43,12 @@ def ansi_print_sequence(data, size=None, skip_last_pixel=True):
     if size is None:
         size = shutil.get_terminal_size()
 
-    data_width, data_height = (400, 400)
+    header_size = 4
+    assert len(data) >= header_size
+    data_width = data[1] * 256 + data[0]
+    data_height = data[3] * 256 + data[2]
+
+    assert len(data) == header_size + data_width * data_height
 
     term_width, term_height = size
     for term_i in range(term_height):
@@ -57,7 +60,7 @@ def ansi_print_sequence(data, size=None, skip_last_pixel=True):
             ):
                 data_i = term_i * data_height // term_height
                 data_j = term_j * data_width // term_width
-                color_index = data[data_i * data_width + data_j]
+                color_index = data[header_size + data_i * data_width + data_j]
                 yield f"\033[48;5;{color_index}m"
                 yield " "
 
