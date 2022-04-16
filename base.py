@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 from base64 import b64decode
+from gzip import GzipFile
+import io
 import shutil
+import sys
 import termios
 import tty
-import sys
 
 
 class AlternateScreen:
@@ -68,7 +70,8 @@ def ansi_print_sequence(data, size=None, skip_last_pixel=True):
 
 
 def main():
-    data = b64decode(image_data)
+    with GzipFile(fileobj=io.BytesIO(b64decode(image_data))) as f:
+        data = f.read()
 
     to_print = "".join(ansi_print_sequence(data))
 

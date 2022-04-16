@@ -3,6 +3,8 @@
 import argparse
 import base64
 import functools
+from gzip import GzipFile
+import io
 import os
 import textwrap
 from typing import List, Tuple, Sequence
@@ -75,8 +77,14 @@ def main(args):
 
     data = [width % 256, width // 256, height % 256, height // 256, *indices]
 
-    byte_indices = b"".join(i.to_bytes(1, byteorder="big") for i in data)
-    base64_indices = base64.b64encode(byte_indices).decode("ascii")
+    data_bytes = b"".join(i.to_bytes(1, byteorder="big") for i in data)
+
+    fileobj = io.BytesIO()
+    with GzipFile(fileobj=fileobj, mode="w") as f:
+        f.write(data_bytes)
+    gzipped_bytes = fileobj.getvalue()
+
+    base64_indices = base64.b64encode(gzipped_bytes).decode("ascii")
     image_string = "\n".join(textwrap.wrap(base64_indices))
     image_string = f"\n{image_string}\n"
 
