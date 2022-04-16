@@ -8,61 +8,9 @@ import tty
 import os
 import sys
 
-from PIL import Image
-
-imdata = """COLOR_DATA"""
-
-im = Image.frombytes("RGB", (400, 400), b64decode(imdata))
+image_data = """COLOR_DATA"""
 
 os.environ["TERM"] = "xterm-256color"
-
-
-# Ported from bash version in
-# https://unix.stackexchange.com/a/269085/68824
-def palette_256():
-    # Base colors
-    for i in range(16):
-        base = i
-        mul = 128
-        if i == 7:
-            mul = 192
-        elif i == 8:
-            base = 7
-        elif i > 8:
-            mul = 255
-
-        r = mul if base & 1 else 0
-        g = mul if base & 2 else 0
-        b = mul if base & 4 else 0
-        yield i, (r, g, b)
-
-    # RGB section
-    for i in range(16, 232):
-        rgb_index = [
-            (i - 16) // 36,
-            ((i - 16) // 6) % 6,
-            (i - 16) % 6,
-        ]
-        rgb = [0 if val == 0 else val * 40 + 55 for val in rgb_index]
-        yield i, rgb
-
-    # 16-value grayscale
-    for i in range(232, 256):
-        gray = (i - 232) * 10 + 8
-        rgb = (gray, gray, gray)
-        yield i, rgb
-
-
-def get_closest_color_256index(target_rgb):
-    # return 16 + reduce(
-    #     lambda acc, val: acc * 6 + 0 if val < 75 else (val - 35) // 40, target_rgb, 0
-    # )
-
-    index, rgb = min(
-        palette_256(),
-        key=lambda irgb: sum((t - p) ** 2 for t, p in zip(target_rgb, irgb[1])),
-    )
-    return index
 
 
 class AlternateScreen:
@@ -97,18 +45,23 @@ class UnbufferStdin:
         termios.tcsetattr(self.fd, termios.TCSADRAIN, self.prev_settings)
 
 
-def ansi_print_sequence(image, size=None, skip_last_pixel=True):
+def ansi_print_sequence(data, size=None, skip_last_pixel=True):
     if size is None:
         size = shutil.get_terminal_size()
 
-    image = image.resize(size)
+    data_width, data_height = (400, 400)
 
-    width, height = size
-    for i in range(height):
-        for j in range(width):
-            if not skip_last_pixel or i + 1 < height or j + 1 < width:
-                rgb = image.getpixel((j, i))
-                color_index = get_closest_color_256index(rgb)
+    term_width, term_height = size
+    for term_i in range(term_height):
+        for term_j in range(term_width):
+            if (
+                not skip_last_pixel
+                or term_i + 1 < term_height
+                or term_j + 1 < term_width
+            ):
+                data_i = term_i * data_height // term_height
+                data_j = term_j * data_width // term_width
+                color_index = data[data_i * data_width + data_j]
                 yield f"\033[48;5;{color_index}m"
                 yield " "
 
@@ -116,7 +69,9 @@ def ansi_print_sequence(image, size=None, skip_last_pixel=True):
 
 
 def main():
-    to_print = "".join(ansi_print_sequence(im))
+    data = b64decode(image_data)
+
+    to_print = "".join(ansi_print_sequence(data))
 
     with AlternateScreen(), HideCursor(), UnbufferStdin():
         print(to_print, end="")
