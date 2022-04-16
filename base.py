@@ -2,13 +2,10 @@
 
 from base64 import b64decode
 from functools import reduce
+import shutil
 import os
 
-import curses
 from PIL import Image
-
-colorchart = """COLOR_CHART"""
-colorchart = colorchart.split()
 
 imdata = """COLOR_DATA"""
 
@@ -65,33 +62,48 @@ def get_closest_color_256index(target_rgb):
     return index
 
 
-def init_colors():
-    for i, rgb in palette_256():
-        try:
-            curses.init_pair(i, i, i)
-        except curses.error:
-            pass
+class AlternateScreen:
+    def __enter__(self):
+        print("\0337\033[?47h", end="")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        print("\033[2J\033[?47l\0338", end="")
 
 
-def curses_main(stdscr):
-    global im
+class HideCursor:
+    def __enter__(self):
+        print("\033[?25h", end="")
+        return self
 
-    height, width = stdscr.getmaxyx()
-    im = im.resize((width, height))
-    init_colors()
+    def __exit__(self, exc_type, exc_value, traceback):
+        print("\033[?25l", end="")
 
+
+def ansi_print_sequence(image, size=None, skip_last_pixel=True):
+    if size is None:
+        size = shutil.get_terminal_size()
+
+    image = image.resize(size)
+
+    width, height = size
     for i in range(height):
         for j in range(width):
-            if i + 1 < height or j + 1 < width:
-                rgb = im.getpixel((j, i))
+            if not skip_last_pixel or i + 1 < height or j + 1 < width:
+                rgb = image.getpixel((j, i))
                 color_index = get_closest_color_256index(rgb)
-                stdscr.addch(i, j, " ", curses.color_pair(color_index))
-    stdscr.refresh()
-    stdscr.getch()
+                yield f"\033[48;5;{color_index}m"
+                yield " "
+
+    yield "\033[0m"
 
 
 def main():
-    curses.wrapper(curses_main)
+    to_print = "".join(ansi_print_sequence(im))
+
+    with AlternateScreen(), HideCursor():
+        print(to_print, end="")
+        input()
 
 
 if __name__ == "__main__":
